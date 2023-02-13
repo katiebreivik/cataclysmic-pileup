@@ -28,7 +28,7 @@ if __name__ == '__main__':
     # initialize the arrays containing the CV properties
     m1 = np.random.normal(loc=args.mu_m1, scale=args.sigma_m1, size=args.nCV)
     m2 = np.random.normal(loc=args.mu_m2, scale=args.sigma_m2, size=args.nCV)
-    porb_center = 1/10**(-3.68)
+    porb_center = 5150 # Based on Fig 14 of Pala+2020
     porb = np.random.uniform(porb_center - args.bump_width, porb_center + args.bump_width, size=args.nCV)
     f_gw = 2/porb
     inclination = np.arccos(np.random.uniform(-1, 1, args.nCV))
