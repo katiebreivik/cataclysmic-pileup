@@ -99,18 +99,6 @@ if __name__ == '__main__':
     # Parse the command line
     args = parse_commandline()
     
-<<<<<<< HEAD
-    # initialize the arrays containing the CV properties
-    m1 = np.random.normal(loc=args.mu_m1, scale=args.sigma_m1, size=args.nCV)
-    m2 = np.random.normal(loc=args.mu_m2, scale=args.sigma_m2, size=args.nCV)
-    porb_center = 5150 # Based on Fig 14 of Pala+2020
-    porb = np.random.uniform(porb_center - args.bump_width, porb_center + args.bump_width, size=args.nCV)
-    f_gw = 2/porb
-    inclination = np.arccos(np.random.uniform(-1, 1, args.nCV))
-    norm = 1/(args.max_distance**3/3)
-    dist = (3 * np.random.uniform(0, 1, args.nCV) / norm)**(1./3.) / 1000 * u.kpc
-    phi = np.random.uniform(0, 2 * np.pi, args.nCV)
-    theta = np.arccos(np.random.uniform(-1, 1, args.nCV))
     # first sample the population
     # sample the population positions and size based on Pala+2020 distribution & space density
     x, y, z = sample_position_from_Pala_2020(rho_0=4.8, h=280, dist_max=args.max_distance)
