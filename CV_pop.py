@@ -136,4 +136,4 @@ if __name__ == '__main__':
     dat[ind_150[ind_Pala], 7] = np.ones(len(m1_P))
     
     # save the data
-    np.savetxt(f"dat_maxDistance_{int(args.max_distance)}.txt", dat, delimiter=',', header="m1[Msun], m2[Msun], f_gw[Hz], inclination[rad], x_galcen[kpc], y_galcen[kpc], z_galcen[kpc], Pala_reassigned")
+    np.savetxt(f"dat_maxDistance_{int(args.max_distance)}.txt", dat, delimiter=',', header="m1[Msun], m2[Msun], f_gw[Hz], inclination[rad], x_barycentric[kpc], y_barycentric[kpc], z_barycentric[kpc], Pala_reassigned")
