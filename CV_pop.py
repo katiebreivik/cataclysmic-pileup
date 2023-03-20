@@ -31,6 +31,15 @@ def sample_porb_from_Knigge_2011(nCV, log_t_cut=7):
     
     return porb
 
+def sample_porb_from_Pala_2020(nCV):
+    dat = pd.read_hdf('Pala_2020_dat_combo.h5', key='dat')
+    porb_kde = stats.gaussian_kde(dat.porb.values / 60, bw_method=0.1) # convert minutes to hours
+    porb = porb_kde.resample(nCV)[0]
+    
+    porb[porb < min(dat.porb/60)] = np.random.uniform( min(dat.porb/60), 1.38, len(porb[porb < min(dat.porb/60)]))
+    return porb
+
+
 def sample_position_from_Pala_2020(rho_0=4.8, h=280, dist_max=600):
     # the Pala+2020 model is just a cylinder with an exponential decay in z
     # this means we can assign x, y randomly in a circle and z with the exponential decay
@@ -109,8 +118,8 @@ if __name__ == '__main__':
     # sample the primary mass with normal distribution supplied by user
     m1 = np.random.normal(loc=args.mu_m1, scale=args.sigma_m1, size=len(x))
     
-    # get the orbital periods by sampling from the Knigge+2011 table
-    porb = sample_porb_from_Knigge_2011(nCV=len(x), log_t_cut=7)
+    # get the orbital periods by sampling from the Pala+2020 table
+    porb = sample_porb_from_Pala_2020(nCV=len(x))
     f_gw = 2/(porb * 3600) # this is simple because the binaries are circular and porb is in hrs
 
     # get the matching donor mass from the Knigge+2011 table
@@ -135,5 +144,13 @@ if __name__ == '__main__':
     dat[ind_150[ind_Pala], 6] = z_P
     dat[ind_150[ind_Pala], 7] = np.ones(len(m1_P))
     
+    c = SkyCoord(dat[:, 4], dat[:, 5], dat[:, 6], unit=u.kpc, frame='barycentrictrueecliptic', representation_type='cartesian')
+    
+    c_gal = c.transform_to('galactocentric')
+    
+    dat[:, 4] = c_gal.x
+    dat[:, 5] = c_gal.y
+    dat[:, 6] = c_gal.z
+    
     # save the data
-    np.savetxt(f"dat_maxDistance_{int(args.max_distance)}.txt", dat, delimiter=',', header="m1[Msun], m2[Msun], f_gw[Hz], inclination[rad], x_barycentric[kpc], y_barycentric[kpc], z_barycentric[kpc], Pala_reassigned")
+    np.savetxt(f"dat_maxDistance_{int(args.max_distance)}.txt", dat, delimiter=',', header="m1[Msun], m2[Msun], f_gw[Hz], inclination[rad], x_gal[kpc], y_gal[kpc], z_gal[kpc], Pala_reassigned")
