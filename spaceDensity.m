@@ -1,0 +1,11 @@
+clear
+close all
+
+h = 280;
+rho0 = 4.8e-6;
+dMax = 500;    
+
+Npos = rho0 * pi * (dMax^2) *  h*(1-exp(-dMax/h))
+
+
+Nvol = rho0*pi*dMax^3
