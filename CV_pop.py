@@ -20,18 +20,18 @@ def parse_commandline():
     args = parser.parse_args()
     return args
 
-def sample_porb_from_Knigge_2011(nCV, log_t_cut=1):
-    # Since the data points are evenly spaced, we can just create a kde of the periods
-    # and they will be sampled according to how probable a source is to exist at that period
-    #load knigge data to sample orbital periods; enforce limits of distribution
-    dat = pd.read_csv('kniggeTable.csv')
-    porb_kde = stats.gaussian_kde(dat.loc[dat.logt > log_t_cut]['Per'])
-    porb = porb_kde.resample(nCV)[0]
-    porb[porb < min(dat.loc[dat.logt > log_t_cut]['Per'])] = np.random.uniform(min(dat.loc[dat.logt > log_t_cut]['Per']), 1.38, len(porb[porb < min(dat.loc[dat.logt > log_t_cut]['Per'])]))
-    porb[porb > max(dat.loc[dat.logt > log_t_cut]['Per'])] = np.random.uniform(2.0, max(dat.loc[dat.logt > log_t_cut]['Per']), len(porb[porb > max(dat.loc[dat.logt > log_t_cut]['Per'])]))
-    
-    return porb
-
+#def sample_porb_from_Knigge_2011(nCV, log_t_cut=1):
+#    # Since the data points are evenly spaced, we can just create a kde of the periods
+#    # and they will be sampled according to how probable a source is to exist at that period
+#    #load knigge data to sample orbital periods; enforce limits of distribution
+#    dat = pd.read_csv('kniggeTable.csv')
+#    porb_kde = stats.gaussian_kde(dat.loc[dat.logt > log_t_cut]['Per'])
+#    porb = porb_kde.resample(nCV)[0]
+#    porb[porb < min(dat.loc[dat.logt > log_t_cut]['Per'])] = np.random.uniform(min(dat.loc[dat.logt > log_t_cut]['Per']), 1.38, len(porb[porb < min(dat.loc[dat.logt > log_t_cut]['Per'])]))
+#    porb[porb > max(dat.loc[dat.logt > log_t_cut]['Per'])] = np.random.uniform(2.0, max(dat.loc[dat.logt > log_t_cut]['Per']), len(porb[porb > max(dat.loc[dat.logt > log_t_cut]['Per'])]))
+#    
+#    return porb
+#
 def sample_porb_from_Pala_2020(nCV):
     dat = pd.read_hdf('Pala_2020_dat_combo.h5', key='dat')
     #porb_kde = stats.gaussian_kde(dat.porb.values / 60, bw_method=0.2) # convert minutes to hours
@@ -50,9 +50,10 @@ def sample_position_from_Pala_2020(rho_0=4.8e-6, h=280, dist_max=600):
     # this means we can assign x, y randomly in a circle and z with the exponential decay
     #N_sample_positive = rho_0 * h * (1 - np.exp(-(dist_max/2) / h))
 
-    N_sample_positive = rho_0 * np.pi *dist_max**2 * h * (1 - np.exp(-(dist_max/h)))
-    
+    N_sample_positive = rho_0 * np.pi *dist_max**2 * h * (1 - np.exp(-((dist_max)/h)))
+
     N_sample_total = 2 * N_sample_positive
+    #print(N_sample_total)
     #print(N_sample_total)
 
     # we will do a rejection sample to get the correct number of sources.
@@ -74,27 +75,22 @@ def sample_position_from_Pala_2020(rho_0=4.8e-6, h=280, dist_max=600):
     # kb is lazy and will do a rejection sample
     x = np.random.uniform(-dist_max, dist_max, extraFactor*N_sample_total)
     y = np.random.uniform(-dist_max, dist_max, extraFactor*N_sample_total)
-   
-    
-    # exponential z decay above/below the plane
-    #prob_samp = np.random.uniform(0, 1, N_sample_total)
-    #z = -h * np.log(1 - prob_samp / (rho_0 * h))
-    z = np.random.exponential(scale=h, size=extraFactor*N_sample_total)
-
-    plane_sample = np.random.uniform(0, 1, extraFactor*N_sample_total)
-    z[plane_sample < 0.5] = -z[plane_sample < 0.5]
-    
-
-    r = np.sqrt(x**2 + y**2 + z**2)
+    r = np.sqrt(x**2 + y**2)
     ind_keep, = np.where(r < dist_max)
-    x = x[ind_keep]
-    y = y[ind_keep]
-    z = z[ind_keep]
-    # downsample to actual number
     x = x[:N_sample_total]
     y = y[:N_sample_total]
+    
+    z = np.random.exponential(scale=h, size=5*N_sample_total)
+    z = z[z<dist_max]
     z = z[:N_sample_total]
-
+    plane_sample = np.random.uniform(0, 1, N_sample_total)
+    z[plane_sample < 0.5] = -z[plane_sample < 0.5]
+    
+    # now place the final volume limit
+    ind_volume_limit, = np.where(np.sqrt(x**2 + y**2 + z**2) < dist_max)
+    x = x[ind_volume_limit]
+    y = y[ind_volume_limit]
+    z = z[ind_volume_limit]
 
     return x/1000, y/1000, z/1000
     
@@ -113,7 +109,7 @@ def calculate_m2_from_porb(porb):
 def get_Pala_sample(mu_m1, sigma_m1, sigma_m2):
     pala2020 = pd.read_hdf('Pala_2020_dat_combo.h5', key='dat')
     c = SkyCoord(pala2020.ra.values * u.deg, pala2020.dec.values * u.deg, distance=pala2020.distance.values * u.pc)
-    c = c.transform_to(frame='barycentrictrueecliptic')
+    c = c.transform_to(frame='galactic')
     x = c.cartesian.x.value
     y = c.cartesian.y.value
     z = c.cartesian.z.value
@@ -125,7 +121,9 @@ def get_Pala_sample(mu_m1, sigma_m1, sigma_m2):
     inclination = np.arccos(np.random.uniform(-1, 1, len(porb)))
     return m1, m2, porb, x/1000, y/1000, z/1000, inclination
 
-    
+
+
+
 
 if __name__ == '__main__':
     
@@ -183,6 +181,7 @@ if __name__ == '__main__':
     # If less than 54, then we need to run the code again.
 
     if len(ind_150) > 54:
+        print(f"We have {len(ind_150)} sources")
         print("We're good! More than 54 sources in 150pc sample. Deleting some sources.")
         ind_remove = np.random.choice(ind_150, len(ind_150)-54, replace=False)
         dat = np.delete(dat, ind_remove, axis=0)
@@ -192,17 +191,7 @@ if __name__ == '__main__':
         print("Less than 54 sources in 150pc sample. Run Again!") 
         sys.exit()
 
-    #print("ind_150", ind_150.shape)
-
-
-    #ind_Pala = np.random.randint(0, len(ind_150), len(m2_P))
     ind_Pala = np.random.choice(ind_150, len(m2_P), replace=False)   
-
-    #print(ind_150.shape)
-    #print(ind_Pala.shape)
-    #print(ind_150.min(), ind_150.max())
-    #print(ind_Pala.min(), ind_Pala.max())
-     
     dat[ind_150, 7] = 2*np.ones(len(ind_150))
 
     dat[ind_Pala, 0] = m1_P
@@ -215,22 +204,14 @@ if __name__ == '__main__':
     dat[ind_Pala, 7] = np.ones(len(m1_P))
     
     ind, = np.where(dat[:,7] > 0)
-   # print(np.ones(len(m1_P)).shape)
-   # print(ind)
 
-
-
-    c = SkyCoord(dat[:, 4], dat[:, 5], dat[:, 6], unit=u.kpc, frame='barycentrictrueecliptic', representation_type='cartesian')
+    c = SkyCoord(dat[:, 4], dat[:, 5], dat[:, 6], unit=u.kpc, frame='galactic', representation_type='cartesian')
     
     c_gal = c.transform_to('galactocentric')
     
     dat[:, 4] = c_gal.x
     dat[:, 5] = c_gal.y
     dat[:, 6] = c_gal.z
-    
-    ind, = np.where(dat[:,7] == 1)
-    #print(ind.shape)
-
 
     # save the data
     np.savetxt(f"dat_maxDistance_{int(args.max_distance)}.txt", dat, delimiter=',', header="m1[Msun], m2[Msun], f_gw[Hz], inclination[rad], x_gal[kpc], y_gal[kpc], z_gal[kpc], Pala_reassigned", fmt='%.10f')
