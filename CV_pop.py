@@ -48,20 +48,12 @@ def sample_porb_from_Pala_2020(nCV):
 def sample_position_from_Pala_2020(rho_0=4.8e-6, h=280, dist_max=600):
     # the Pala+2020 model is just a cylinder with an exponential decay in z
     # this means we can assign x, y randomly in a circle and z with the exponential decay
-    #N_sample_positive = rho_0 * h * (1 - np.exp(-(dist_max/2) / h))
-
     N_sample_positive = rho_0 * np.pi *dist_max**2 * h * (1 - np.exp(-((dist_max)/h)))
-
     N_sample_total = 2 * N_sample_positive
-    #print(N_sample_total)
-    #print(N_sample_total)
 
     # we will do a rejection sample to get the correct number of sources.
     # we will sample 5 times the number we need and then downsample
-    
     extraFactor = 5
-
-
 
     # determine if we add the remainder of the decimal as a source
     prob_extra = np.random.uniform(0, 1)
@@ -76,17 +68,24 @@ def sample_position_from_Pala_2020(rho_0=4.8e-6, h=280, dist_max=600):
     x = np.random.uniform(-dist_max, dist_max, extraFactor*N_sample_total)
     y = np.random.uniform(-dist_max, dist_max, extraFactor*N_sample_total)
     r = np.sqrt(x**2 + y**2)
+    # first take everything within the disk
     ind_keep, = np.where(r < dist_max)
+    x = x[ind_keep]
+    y = y[ind_keep]
+    
+    # next downsample to size of population
     x = x[:N_sample_total]
     y = y[:N_sample_total]
     
-    z = np.random.exponential(scale=h, size=extraFactor*N_sample_total)
-    z = z[z<dist_max]
-    z = z[:N_sample_total]
-    plane_sample = np.random.uniform(0, 1, N_sample_total)
+    # next assign the z population
+    z = np.random.exponential(scale=h, size=5*N_sample_total)
+    plane_sample = np.random.uniform(0, 1, 5*N_sample_total)
     z[plane_sample < 0.5] = -z[plane_sample < 0.5]
+    # filter to systems within dist_max
+    z = z[abs(z) < dist_max]
+    z = z[:N_sample_total]
     
-    # now place the final volume limit
+    ## now place the final volume limit
     ind_volume_limit, = np.where(np.sqrt(x**2 + y**2 + z**2) < dist_max)
     x = x[ind_volume_limit]
     y = y[ind_volume_limit]
@@ -136,13 +135,11 @@ if __name__ == '__main__':
     
     d = np.sqrt(x**2 + y**2 + z**2) * u.kpc
     ind_check, = np.where(d<0.15*u.kpc)
-    while len(ind_check) < 54:
-        print("We need 54 sources within 150pc. Generating new population!")
+    while len(ind_check) < 42:
+        print("We need at least 42 sources within 150pc. Generating new population!")
         x, y, z = sample_position_from_Pala_2020(rho_0=4.8e-6, h=280, dist_max=args.max_distance)
         d = np.sqrt(x**2 + y**2 + z**2) * u.kpc
         ind_check, = np.where(d<0.15*u.kpc)
-
-
 
     # assign a random inclination
     inclination = np.arccos(np.random.uniform(-1, 1, len(x)))
@@ -180,17 +177,8 @@ if __name__ == '__main__':
     # Check how many sources are in the 150pc sample. If more than 54, then we need to randomly select 54 from the 150pc sample and delete the rest from dat
     # If less than 54, then we need to run the code again.
 
-    if len(ind_150) > 54:
-        print(f"We have {len(ind_150)} sources")
-        print("We're good! More than 54 sources in 150pc sample. Deleting some sources.")
-        ind_remove = np.random.choice(ind_150, len(ind_150)-54, replace=False)
-        dat = np.delete(dat, ind_remove, axis=0)
-        d = np.sqrt(dat[:,4]**2 + dat[:,5]**2 + dat[:,6]**2) * u.kpc
-        ind_150, = np.where(d<0.15*u.kpc)
-    elif len(ind_150) < 54: # this should never happen
-        print("Less than 54 sources in 150pc sample. Run Again!") 
-        sys.exit()
-
+    # KB edit: I think that we probably shouldn't fix to exactly 54 sources. The space density which suggests the 70% completeness still has errorbars
+    # so we should incorporate that in without the hard coded number of 54.
     ind_Pala = np.random.choice(ind_150, len(m2_P), replace=False)   
     dat[ind_150, 7] = 2*np.ones(len(ind_150))
 
