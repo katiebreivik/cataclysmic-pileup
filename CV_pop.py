@@ -80,7 +80,7 @@ def sample_position_from_Pala_2020(rho_0=4.8e-6, h=280, dist_max=600):
     x = x[:N_sample_total]
     y = y[:N_sample_total]
     
-    z = np.random.exponential(scale=h, size=5*N_sample_total)
+    z = np.random.exponential(scale=h, size=extraFactor*N_sample_total)
     z = z[z<dist_max]
     z = z[:N_sample_total]
     plane_sample = np.random.uniform(0, 1, N_sample_total)
