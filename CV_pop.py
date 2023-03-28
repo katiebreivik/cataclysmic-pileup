@@ -203,3 +203,40 @@ if __name__ == '__main__':
 
     # save the data
     np.savetxt(f"dat_maxDistance_{int(args.max_distance)}.txt", dat, delimiter=',', header="m1[Msun], m2[Msun], f_gw[Hz], inclination[rad], x_gal[kpc], y_gal[kpc], z_gal[kpc], Pala_reassigned", fmt='%.10f')
+    
+    # Reparameterize and print files in format needed for LISA codes
+    
+    # Get source positions in ecliptic spherical coordinates
+    c_GW = c.transform_to('barycentrictrueecliptic')
+    c_GW.representation_type='spherical'
+
+    # some constants for unit conversions
+    MSUN   = 4.9169e-6 #mass of sun [s]
+    CLIGHT = 299792458 #speed of light [m/s]
+    PARSEC_2_METERS=3.0856775807e16 #parsec [m]
+
+    # name parameters meaningfully to make equations readable
+    m1    = dat[:,0]
+    m2    = dat[:,1]
+    f0    = dat[:,2]
+    iota  = dat[:,3]
+    fdot  = f0*0
+    theta = c_GW.lat.to(u.rad).value
+    phi   = c_GW.lon.to(u.rad).value
+    dL    = c_GW.distance.to(u.kpc).value
+    
+    # get GW ampolitude
+    M    = m1+m2 #total mass
+    eta  = m1*m2/M/M #symmetric mass ratio
+    Mc   = M*(eta**(3/5)) #chirp mass
+    A_gw = 2*((M*MSUN)**(5) * (np.pi*f0)**2)**(1/3)/(dL*1000*PARSEC_2_METERS/CLIGHT) #gw amplitude
+    
+    # phase parameters are random
+    phase        = np.random.uniform(0, 2 * np.pi, len(m1)) #initial phase
+    polarization = np.random.uniform(0, np.pi, len(m1)) #polarization angle
+
+    # save the data
+    # NOTE: %.10f does not print enough digits for the GW amplitude. Use %.10e instead.
+    dat_gw = np.vstack([f0,fdot,np.cos(np.pi/2 - theta),phi,A_gw,iota,polarization,phase]).T
+    np.savetxt(f"dat_maxDistance_{int(args.max_distance)}_GW.txt", dat_gw, delimiter=' ', header="f[Hz], fdot[Hz/s], cos colat, lon[rad], Amp, inc[rad], pol[rad], phase[rad]", fmt='%.10e')
+
