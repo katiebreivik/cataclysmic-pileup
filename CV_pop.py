@@ -238,5 +238,6 @@ if __name__ == '__main__':
     # save the data
     # NOTE: %.10f does not print enough digits for the GW amplitude. Use %.10e instead.
     dat_gw = np.vstack([f0,fdot,np.cos(np.pi/2 - theta),phi,A_gw,iota,polarization,phase]).T
-    np.savetxt(f"dat_maxDistance_{int(args.max_distance)}_GW.txt", dat_gw, delimiter=' ', header="f[Hz], fdot[Hz/s], cos colat, lon[rad], Amp, inc[rad], pol[rad], phase[rad]", fmt='%.10e')
+    #np.savetxt(f"dat_maxDistance_{int(args.max_distance)}_GW.txt", dat_gw, delimiter=' ', header="f[Hz], fdot[Hz/s], cos colat, lon[rad], Amp, inc[rad], pol[rad], phase[rad]", fmt='%.10e')
+    np.savetxt(f"dat_maxDistance_{int(args.max_distance)}_GW.txt", dat_gw, delimiter=' ', fmt='%.10e') #no header to make it easier to add to the full galaxy file
 
