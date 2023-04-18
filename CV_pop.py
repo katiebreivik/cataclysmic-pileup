@@ -7,6 +7,7 @@ from scipy.interpolate import interp1d
 import pandas as pd
 import scipy.stats as stats
 import sys
+import scipy.ndimage
 
 def parse_commandline():
     """Parse the command line arguments"""
@@ -33,16 +34,51 @@ def parse_commandline():
 #    return porb
 #
 def sample_porb_from_Pala_2020(nCV):
-    dat = pd.read_hdf('Pala_2020_dat_combo.h5', key='dat')
-    #porb_kde = stats.gaussian_kde(dat.porb.values / 60, bw_method=0.2) # convert minutes to hours
-
-    tt = dat.porb.values[dat.porb.values/60 <6] /60
-    porb_kde = stats.gaussian_kde(tt, bw_method=0.3) # convert minutes to hours
-
-    porb = porb_kde.resample(nCV)[0]
+    # Old version of the Pala+2020 model
+    #dat = pd.read_hdf('Pala_2020_dat_combo.h5', key='dat')
     
-    porb[porb < min(dat.porb/60)] = np.random.uniform( min(dat.porb/60), 1.38, len(porb[porb < min(dat.porb/60)]))
+    #tt = dat.porb.values[dat.porb.values/60 <6] /60 # convert minutes to hours
+    #porb_kde = stats.gaussian_kde(tt, bw_method=0.3)
+    #porb = porb_kde.resample(nCV)[0]
+    #porb[porb < min(dat.porb/60)] = np.random.uniform( min(dat.porb/60), 1.38, len(porb[porb < min(dat.porb/60)]))
+
+    # New version of the Pala+2020 model
+    # load the Cumulative Distribution Finction (CDF)  from lpdist.out
+    lpdist = pd.read_csv("lpdist3.out", delim_whitespace=True, header=None, names=['logp', 'CDF'])
+
+
+    lpdist['porb'] = 10**lpdist['logp'] # convert logp to porb
+    lpdist['porb'] = lpdist['porb'] / 60 # convert minutes to hours
+
+    # Smooth the CDF with a kde to make it more continuous
+    #lpdist['CDF'] = scipy.ndimage.gaussian_filter1d(lpdist['CDF'], 2)
+
+    # sample from the CDF
+    pp = np.random.uniform(0, 1, nCV)
+    porb = np.interp(pp, lpdist.CDF, lpdist.porb)
+
+    # Enforce limits of distribution
+    #porb[porb < min(lpdist.porb)] = np.random.uniform(min(lpdist.porb), 1.38, len(porb[porb < min(lpdist.porb)]))
+
+
+
     return porb
+
+
+def sample_porb_from_Pala_NEW(nCV):
+    # load the Cumulative Distribution Finction (CDF)  from lpdist.out
+    lpdist = pd.read_csv("lpdist.out", delim_whitespace=True, header=None, names=['logp', 'CDF'])
+    lpdist['porb'] = 10**lpdist['logp'] # convert logp to porb
+    lpdist['porb'] = lpdist['porb'] / 60 # convert minutes to hours
+    # sample from the CDF
+    porb = np.random.uniform(0, 1, nCV)
+    porb = np.interp(porb, lpdist.CDF, lpdist.porb)
+
+    # Enforce limits of distribution
+    porb[porb < min(lpdist.porb)] = np.random.uniform(min(lpdist.porb), 1.38, len(porb[porb < min(lpdist.porb)]))
+
+    return porb
+
 
 
 def sample_position_from_Pala_2020(rho_0=4.8e-6, h=280, dist_max=600):
