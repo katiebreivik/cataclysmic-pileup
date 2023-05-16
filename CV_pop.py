@@ -21,18 +21,7 @@ def parse_commandline():
     args = parser.parse_args()
     return args
 
-#def sample_porb_from_Knigge_2011(nCV, log_t_cut=1):
-#    # Since the data points are evenly spaced, we can just create a kde of the periods
-#    # and they will be sampled according to how probable a source is to exist at that period
-#    #load knigge data to sample orbital periods; enforce limits of distribution
-#    dat = pd.read_csv('kniggeTable.csv')
-#    porb_kde = stats.gaussian_kde(dat.loc[dat.logt > log_t_cut]['Per'])
-#    porb = porb_kde.resample(nCV)[0]
-#    porb[porb < min(dat.loc[dat.logt > log_t_cut]['Per'])] = np.random.uniform(min(dat.loc[dat.logt > log_t_cut]['Per']), 1.38, len(porb[porb < min(dat.loc[dat.logt > log_t_cut]['Per'])]))
-#    porb[porb > max(dat.loc[dat.logt > log_t_cut]['Per'])] = np.random.uniform(2.0, max(dat.loc[dat.logt > log_t_cut]['Per']), len(porb[porb > max(dat.loc[dat.logt > log_t_cut]['Per'])]))
-#    
-#    return porb
-#
+
 def sample_porb_from_Pala_2020(nCV):
     # Old version of the Pala+2020 model
     #dat = pd.read_hdf('Pala_2020_dat_combo.h5', key='dat')
@@ -59,8 +48,6 @@ def sample_porb_from_Pala_2020(nCV):
 
     # Enforce limits of distribution
     #porb[porb < min(lpdist.porb)] = np.random.uniform(min(lpdist.porb), 1.38, len(porb[porb < min(lpdist.porb)]))
-
-
 
     return porb
 
